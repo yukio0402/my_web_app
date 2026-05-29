@@ -16,8 +16,10 @@ const basicAuthUser = process.env.FILE_DROP_USER || "";
 const basicAuthPassword = process.env.FILE_DROP_PASSWORD || "";
 const basicAuthEnabled = Boolean(basicAuthUser && basicAuthPassword);
 const allowedExtensions = new Set([".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"]);
+const allowedTextExtensions = new Set([".csv", ".tsv", ".txt"]);
 const maxChunkBytes = Number(process.env.MAX_CHUNK_MB || 32) * 1024 * 1024;
 const maxFileBytes = Number(process.env.MAX_FILE_GB || 20) * 1024 * 1024 * 1024;
+const maxTextBytes = Number(process.env.MAX_TEXT_MB || 256) * 1024 * 1024;
 
 await fsp.mkdir(incomingDir, { recursive: true });
 
@@ -71,6 +73,12 @@ async function handleApi(req, res, url) {
     const body = await readJson(req);
     const meta = await initUpload(body);
     sendJson(res, 200, meta);
+    return;
+  }
+
+  if (url.pathname === "/api/text" && req.method === "POST") {
+    const result = await savePastedText(req, url);
+    sendJson(res, 200, result);
     return;
   }
 
@@ -301,6 +309,39 @@ async function completeUpload(uploadId) {
       name: meta.finalName,
       originalName: meta.originalName,
       size: meta.size,
+      savedAt: new Date().toISOString()
+    }
+  };
+}
+
+async function savePastedText(req, url) {
+  const requestedName = url.searchParams.get("name") || "pasted.tsv";
+  const safeName = sanitizeFileName(requestedName);
+  const extension = path.extname(safeName).toLowerCase();
+
+  if (!allowedTextExtensions.has(extension)) {
+    throw httpError(400, "Pasted text must be saved as .csv, .tsv, or .txt");
+  }
+
+  const now = new Date().toISOString().replace(/[:.]/g, "-");
+  const finalName = await availableFileName(`${now}-${safeName}`);
+  const finalPath = path.join(uploadDir, finalName);
+  const tempPath = `${finalPath}.tmp`;
+
+  const writtenBytes = await streamToFile(req, tempPath, maxTextBytes);
+  if (writtenBytes <= 0) {
+    await fsp.rm(tempPath, { force: true });
+    throw httpError(400, "Pasted text was empty");
+  }
+
+  await fsp.rename(tempPath, finalPath);
+
+  return {
+    ok: true,
+    file: {
+      name: finalName,
+      originalName: safeName,
+      size: writtenBytes,
       savedAt: new Date().toISOString()
     }
   };

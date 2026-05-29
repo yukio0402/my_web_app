@@ -27,7 +27,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -125,14 +126,28 @@ h2 {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
-  min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: #fff;
   color: var(--text);
+}
+
+input,
+select {
+  min-height: 42px;
   padding: 0 12px;
+}
+
+textarea {
+  min-height: 220px;
+  margin-top: 12px;
+  padding: 12px;
+  resize: vertical;
+  line-height: 1.45;
+  tab-size: 4;
 }
 
 .dropPanel {
@@ -197,8 +212,42 @@ select {
 }
 
 .queue h2,
-.files h2 {
+.files h2,
+.pastePanel h2 {
   margin-bottom: 10px;
+}
+
+.pastePanel {
+  margin-top: 24px;
+  padding: 16px;
+}
+
+.sectionHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.pasteControls {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 280px) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pasteControls label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #30404c;
+}
+
+.pasteMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .list {
@@ -293,7 +342,9 @@ select {
   .dropContent,
   .settings,
   .item,
-  .authRow {
+  .authRow,
+  .sectionHeader,
+  .pasteControls {
     grid-template-columns: 1fr;
   }
 

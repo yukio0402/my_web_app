@@ -49,6 +49,26 @@
         <span class="muted">Cloudflare経由でも通りやすい小さなリクエストに分けます。</span>
       </section>
 
+      <section class="pastePanel panel" aria-label="Paste text transfer">
+        <div class="sectionHeader">
+          <div>
+            <h2>貼り付け保存</h2>
+            <p class="muted">Excelで範囲選択してコピーした表は、タブ区切りテキストとして保存できます。</p>
+          </div>
+          <button id="savePasteButton" type="button">保存</button>
+        </div>
+        <div class="pasteControls">
+          <label for="pasteFileName">保存名</label>
+          <input id="pasteFileName" type="text" value="pasted.tsv" inputmode="text" autocomplete="off">
+          <button id="clearPasteButton" class="secondary" type="button">クリア</button>
+        </div>
+        <textarea id="pasteText" spellcheck="false" placeholder="ここにCSV、TSV、またはExcelからコピーした表を貼り付け"></textarea>
+        <div class="pasteMeta">
+          <span id="pasteStats" class="muted">0文字</span>
+          <span id="pasteStatus" class="status"></span>
+        </div>
+      </section>
+
       <section class="queue" aria-label="Upload queue">
         <h2>アップロード</h2>
         <div id="queueList" class="list empty">待機中</div>

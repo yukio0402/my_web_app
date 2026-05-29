@@ -98,6 +98,46 @@ test("uploads, downloads, and deletes a chunked CSV behind Basic auth", async ()
   }
 });
 
+test("saves pasted spreadsheet text as TSV behind Basic auth", async () => {
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      TRANSFER_CODE: code,
+      FILE_DROP_USER: basicUser,
+      FILE_DROP_PASSWORD: basicPassword
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  try {
+    await waitForHealth();
+
+    const text = "name\tamount\nA\t100\nB\t200\n";
+    const saved = await api("/api/text?name=pasted.tsv", {
+      method: "POST",
+      headers: { "content-type": "text/plain; charset=utf-8" },
+      body: text
+    });
+
+    assert.equal(saved.ok, true);
+    assert.match(saved.file.name, /pasted\.tsv$/);
+
+    const download = await fetch(`${baseUrl}/api/files/${encodeURIComponent(saved.file.name)}/download?code=${encodeURIComponent(code)}`, {
+      headers: { authorization: basicAuth }
+    });
+    assert.equal(download.ok, true);
+    assert.equal(await download.text(), text);
+
+    await api(`/api/files/${encodeURIComponent(saved.file.name)}`, { method: "DELETE" });
+    await assert.rejects(fsp.access(path.join(rootDir, "uploads", saved.file.name)));
+  } finally {
+    child.kill();
+    await new Promise((resolve) => child.once("exit", resolve));
+  }
+});
+
 async function api(pathname, options = {}) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     ...options,

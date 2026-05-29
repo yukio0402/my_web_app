@@ -12,6 +12,12 @@ const chunkSizeSelect = document.querySelector("#chunkSize");
 const queueList = document.querySelector("#queueList");
 const fileList = document.querySelector("#fileList");
 const refreshButton = document.querySelector("#refreshButton");
+const pasteFileName = document.querySelector("#pasteFileName");
+const pasteText = document.querySelector("#pasteText");
+const savePasteButton = document.querySelector("#savePasteButton");
+const clearPasteButton = document.querySelector("#clearPasteButton");
+const pasteStats = document.querySelector("#pasteStats");
+const pasteStatus = document.querySelector("#pasteStatus");
 
 const queue = new Map();
 
@@ -33,6 +39,17 @@ fileInput.addEventListener("change", () => {
 });
 
 refreshButton.addEventListener("click", refreshFiles);
+savePasteButton.addEventListener("click", savePastedText);
+clearPasteButton.addEventListener("click", () => {
+  pasteText.value = "";
+  pasteStatus.textContent = "";
+  pasteStatus.className = "status";
+  updatePasteStats();
+});
+pasteText.addEventListener("input", updatePasteStats);
+pasteText.addEventListener("paste", () => {
+  window.setTimeout(updatePasteStats, 0);
+});
 
 dropPanel.addEventListener("dragover", (event) => {
   event.preventDefault();
@@ -50,6 +67,7 @@ dropPanel.addEventListener("drop", (event) => {
 });
 
 await refreshFiles();
+updatePasteStats();
 
 function addFiles(fileListLike) {
   const files = Array.from(fileListLike || []);
@@ -198,6 +216,58 @@ async function refreshFiles() {
   }
 }
 
+async function savePastedText() {
+  const text = pasteText.value;
+  const name = normalizePasteFileName(pasteFileName.value);
+
+  pasteStatus.className = "status";
+  pasteStatus.textContent = "";
+
+  if (!text.trim()) {
+    pasteStatus.classList.add("error");
+    pasteStatus.textContent = "貼り付け内容が空です";
+    return;
+  }
+
+  pasteFileName.value = name;
+  savePasteButton.disabled = true;
+  pasteStatus.classList.add("warn");
+  pasteStatus.textContent = "保存中";
+
+  try {
+    const result = await api(`/api/text?name=${encodeURIComponent(name)}`, {
+      method: "POST",
+      body: text,
+      headers: {
+        "content-type": "text/plain; charset=utf-8"
+      }
+    });
+    pasteStatus.className = "status ok";
+    pasteStatus.textContent = `${result.file.name} を保存しました`;
+    pasteText.value = "";
+    updatePasteStats();
+    await refreshFiles();
+  } catch (error) {
+    pasteStatus.className = "status error";
+    pasteStatus.textContent = error.message || String(error);
+  } finally {
+    savePasteButton.disabled = false;
+  }
+}
+
+function updatePasteStats() {
+  const text = pasteText.value;
+  const rows = text ? text.split(/\r\n|\r|\n/).length : 0;
+  const bytes = new TextEncoder().encode(text).length;
+  pasteStats.textContent = `${text.length.toLocaleString()}文字 · ${rows.toLocaleString()}行 · ${formatBytes(bytes)}`;
+}
+
+function normalizePasteFileName(value) {
+  const trimmed = (value || "").trim();
+  const name = trimmed || "pasted.tsv";
+  return /\.(csv|tsv|txt)$/i.test(name) ? name : `${name}.tsv`;
+}
+
 function renderQueue() {
   if (!queue.size) {
     queueList.className = "list empty";
@@ -259,7 +329,7 @@ function renderFiles(files) {
     download.textContent = "DL";
     download.title = "ダウンロード";
     download.addEventListener("click", () => {
-      window.location.href = `/api/files/${encodeURIComponent(file.name)}/download?code=${encodeURIComponent(getTransferCode())}`;
+      window.location.href = sameOriginUrl(`/api/files/${encodeURIComponent(file.name)}/download?code=${encodeURIComponent(getTransferCode())}`);
     });
 
     const remove = document.createElement("button");
@@ -295,7 +365,7 @@ async function api(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("x-transfer-code", getTransferCode());
 
-  const response = await fetch(path, {
+  const response = await fetch(sameOriginUrl(path), {
     ...options,
     headers,
     credentials: "same-origin"
@@ -313,6 +383,10 @@ async function api(path, options = {}) {
 
 function getTransferCode() {
   return (localStorage.getItem("transferCode") || codeInput.value || "").trim();
+}
+
+function sameOriginUrl(path) {
+  return new URL(path, window.location.origin).toString();
 }
 
 function formatBytes(bytes) {

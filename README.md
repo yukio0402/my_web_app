@@ -32,6 +32,12 @@ FILE_DROP_USER='your-user' FILE_DROP_PASSWORD='your-password' TRANSFER_CODE='cha
 
 Visitors must pass Basic authentication first, then enter the transfer code in the app.
 
+## Paste Transfer
+
+If a managed browser blocks file drag-and-drop, open the spreadsheet, select the approved range, copy it, and paste it into the app's paste box. Excel usually copies ranges as tab-separated text, so the default save name is `pasted.tsv`.
+
+Use a `.csv`, `.tsv`, or `.txt` file name depending on what you pasted.
+
 ## Cloudflare Tunnel
 
 After installing `cloudflared`, expose the local app:
