@@ -293,11 +293,12 @@ function addQueueError(name, message) {
 
 async function api(path, options = {}) {
   const headers = new Headers(options.headers || {});
-  headers.set("authorization", `Bearer ${getTransferCode()}`);
+  headers.set("x-transfer-code", getTransferCode());
 
   const response = await fetch(path, {
     ...options,
-    headers
+    headers,
+    credentials: "same-origin"
   });
 
   const isJson = response.headers.get("content-type")?.includes("application/json");

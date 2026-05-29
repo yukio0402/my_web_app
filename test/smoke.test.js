@@ -8,14 +8,43 @@ const rootDir = path.resolve(import.meta.dirname, "..");
 const port = 9876;
 const baseUrl = `http://localhost:${port}`;
 const code = "smoke-test-code";
+const basicUser = "smoke-user";
+const basicPassword = "smoke-password";
+const basicAuth = `Basic ${Buffer.from(`${basicUser}:${basicPassword}`).toString("base64")}`;
 
-test("uploads, downloads, and deletes a chunked CSV", async () => {
+test("requires Basic auth", async () => {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: rootDir,
     env: {
       ...process.env,
       PORT: String(port),
-      TRANSFER_CODE: code
+      TRANSFER_CODE: code,
+      FILE_DROP_USER: basicUser,
+      FILE_DROP_PASSWORD: basicPassword
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  try {
+    await waitForListening();
+    const response = await fetch(`${baseUrl}/`);
+    assert.equal(response.status, 401);
+    assert.match(response.headers.get("www-authenticate") || "", /Basic/);
+  } finally {
+    child.kill();
+    await new Promise((resolve) => child.once("exit", resolve));
+  }
+});
+
+test("uploads, downloads, and deletes a chunked CSV behind Basic auth", async () => {
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      TRANSFER_CODE: code,
+      FILE_DROP_USER: basicUser,
+      FILE_DROP_PASSWORD: basicPassword
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -55,7 +84,9 @@ test("uploads, downloads, and deletes a chunked CSV", async () => {
     const listing = await api("/api/files");
     assert.equal(listing.files.some((file) => file.name === completed.file.name), true);
 
-    const download = await fetch(`${baseUrl}/api/files/${encodeURIComponent(completed.file.name)}/download?code=${encodeURIComponent(code)}`);
+    const download = await fetch(`${baseUrl}/api/files/${encodeURIComponent(completed.file.name)}/download?code=${encodeURIComponent(code)}`, {
+      headers: { authorization: basicAuth }
+    });
     assert.equal(download.ok, true);
     assert.deepEqual(Buffer.from(await download.arrayBuffer()), bytes);
 
@@ -71,7 +102,8 @@ async function api(pathname, options = {}) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     ...options,
     headers: {
-      authorization: `Bearer ${code}`,
+      authorization: basicAuth,
+      "x-transfer-code": code,
       ...options.headers
     }
   });
@@ -87,8 +119,23 @@ async function waitForHealth() {
   const started = Date.now();
   while (Date.now() - started < 5000) {
     try {
-      const response = await fetch(`${baseUrl}/api/health`);
+      const response = await fetch(`${baseUrl}/api/health`, {
+        headers: { authorization: basicAuth }
+      });
       if (response.ok) return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+  throw new Error("Server did not start");
+}
+
+async function waitForListening() {
+  const started = Date.now();
+  while (Date.now() - started < 5000) {
+    try {
+      await fetch(`${baseUrl}/`);
+      return;
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
