@@ -1,0 +1,14 @@
+{
+  "name": "company-file-drop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Authorized browser-based spreadsheet transfer receiver for a local Mac.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

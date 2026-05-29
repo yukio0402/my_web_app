@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Company File Drop</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-label="Status">
+        <div>
+          <h1>Company File Drop</h1>
+          <p>許可済みスプレッドシートをこのMacへ直接保存</p>
+        </div>
+        <button id="refreshButton" class="iconButton" type="button" aria-label="一覧を更新" title="一覧を更新">
+          <span aria-hidden="true">↻</span>
+        </button>
+      </section>
+
+      <section id="authPanel" class="panel authPanel">
+        <label for="codeInput">転送コード</label>
+        <div class="authRow">
+          <input id="codeInput" type="password" autocomplete="current-password" placeholder="Mac側に表示されたコード">
+          <button id="saveCodeButton" type="button">接続</button>
+        </div>
+        <p id="authMessage" class="muted"></p>
+      </section>
+
+      <section id="dropPanel" class="dropPanel" aria-label="Upload area">
+        <input id="fileInput" type="file" multiple accept=".csv,.tsv,.xlsx,.xls,.xlsm,.xlsb,.ods">
+        <div class="dropContent">
+          <div class="uploadIcon" aria-hidden="true">⇧</div>
+          <div>
+            <h2>ここにドラッグ&ドロップ</h2>
+            <p>CSV / Excel / ODS。大きいファイルは自動で分割送信します。</p>
+          </div>
+          <button id="chooseButton" type="button">ファイル選択</button>
+        </div>
+      </section>
+
+      <section class="settings panel">
+        <label for="chunkSize">分割サイズ</label>
+        <select id="chunkSize">
+          <option value="8388608">8 MB</option>
+          <option value="16777216" selected>16 MB</option>
+          <option value="33554432">32 MB</option>
+        </select>
+        <span class="muted">Cloudflare経由でも通りやすい小さなリクエストに分けます。</span>
+      </section>
+
+      <section class="queue" aria-label="Upload queue">
+        <h2>アップロード</h2>
+        <div id="queueList" class="list empty">待機中</div>
+      </section>
+
+      <section class="files" aria-label="Received files">
+        <h2>このMacに保存済み</h2>
+        <div id="fileList" class="list empty">まだファイルはありません</div>
+      </section>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

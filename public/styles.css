@@ -1,0 +1,312 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f7f8;
+  --text: #182026;
+  --muted: #64717d;
+  --line: #d6dde2;
+  --panel: #ffffff;
+  --accent: #176b87;
+  --accent-strong: #0f5166;
+  --ok: #197447;
+  --warn: #9a5b00;
+  --danger: #b42318;
+  --shadow: 0 10px 30px rgba(25, 42, 54, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.shell {
+  width: min(1080px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 28px 0 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.topbar p,
+.muted {
+  color: var(--muted);
+}
+
+.iconButton {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  font-size: 24px;
+}
+
+.panel,
+.dropPanel,
+.list {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.authPanel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 16px;
+}
+
+.authPanel label,
+.settings label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #30404c;
+}
+
+.authRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--text);
+  padding: 0 12px;
+}
+
+.dropPanel {
+  position: relative;
+  min-height: 260px;
+  border-style: dashed;
+  border-width: 2px;
+  display: grid;
+  place-items: center;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.dropPanel.dragging {
+  border-color: var(--accent);
+  background: #eef9fb;
+}
+
+.dropPanel input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dropContent {
+  width: min(620px, calc(100% - 32px));
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.dropContent p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.uploadIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background: #e9f3f6;
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.settings {
+  display: grid;
+  grid-template-columns: auto 150px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 26px;
+  padding: 14px 16px;
+}
+
+.queue,
+.files {
+  margin-top: 24px;
+}
+
+.queue h2,
+.files h2 {
+  margin-bottom: 10px;
+}
+
+.list {
+  padding: 8px;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 18px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 7px;
+}
+
+.item + .item {
+  border-top: 1px solid var(--line);
+}
+
+.fileName {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.progressTrack {
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: #e6ecef;
+  overflow: hidden;
+}
+
+.progressBar {
+  width: 0%;
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms ease;
+}
+
+.status.ok {
+  color: var(--ok);
+}
+
+.status.warn {
+  color: var(--warn);
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.secondary {
+  background: #e8eef1;
+  color: #20303a;
+}
+
+.secondary:hover {
+  background: #dbe4e9;
+}
+
+.danger {
+  background: #f8e6e3;
+  color: var(--danger);
+}
+
+.danger:hover {
+  background: #f3d3cf;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: min(100vw - 20px, 1080px);
+    padding-top: 18px;
+  }
+
+  .dropContent,
+  .settings,
+  .item,
+  .authRow {
+    grid-template-columns: 1fr;
+  }
+
+  .dropContent {
+    text-align: center;
+    justify-items: center;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions button {
+    flex: 1;
+  }
+}
