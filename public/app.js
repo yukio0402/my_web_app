@@ -2,6 +2,8 @@ const allowedExtensions = new Set(["csv", "tsv", "xlsx", "xls", "xlsm", "xlsb", 
 const maxConcurrency = 3;
 
 const authPanel = document.querySelector("#authPanel");
+const userInput = document.querySelector("#userInput");
+const passwordInput = document.querySelector("#passwordInput");
 const codeInput = document.querySelector("#codeInput");
 const saveCodeButton = document.querySelector("#saveCodeButton");
 const authMessage = document.querySelector("#authMessage");
@@ -21,16 +23,22 @@ const pasteStatus = document.querySelector("#pasteStatus");
 
 const queue = new Map();
 
+userInput.value = localStorage.getItem("fileDropUser") || "";
+passwordInput.value = sessionStorage.getItem("fileDropPassword") || "";
 codeInput.value = localStorage.getItem("transferCode") || "";
 
 saveCodeButton.addEventListener("click", async () => {
+  localStorage.setItem("fileDropUser", userInput.value.trim());
+  sessionStorage.setItem("fileDropPassword", passwordInput.value);
   localStorage.setItem("transferCode", codeInput.value.trim());
   await refreshFiles();
 });
 
-codeInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") saveCodeButton.click();
-});
+for (const input of [userInput, passwordInput, codeInput]) {
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") saveCodeButton.click();
+  });
+}
 
 chooseButton.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
@@ -328,8 +336,8 @@ function renderFiles(files) {
     download.type = "button";
     download.textContent = "DL";
     download.title = "ダウンロード";
-    download.addEventListener("click", () => {
-      window.location.href = sameOriginUrl(`/api/files/${encodeURIComponent(file.name)}/download?code=${encodeURIComponent(getTransferCode())}`);
+    download.addEventListener("click", async () => {
+      await downloadFile(file.name);
     });
 
     const remove = document.createElement("button");
@@ -362,8 +370,7 @@ function addQueueError(name, message) {
 }
 
 async function api(path, options = {}) {
-  const headers = new Headers(options.headers || {});
-  headers.set("x-transfer-code", getTransferCode());
+  const headers = buildAuthHeaders(options.headers);
 
   const response = await fetch(sameOriginUrl(path), {
     ...options,
@@ -379,6 +386,45 @@ async function api(path, options = {}) {
   }
 
   return body;
+}
+
+async function downloadFile(name) {
+  const response = await fetch(sameOriginUrl(`/api/files/${encodeURIComponent(name)}/download?code=${encodeURIComponent(getTransferCode())}`), {
+    headers: buildAuthHeaders(),
+    credentials: "same-origin"
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    alert(message || `Download failed: ${response.status}`);
+    return;
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function buildAuthHeaders(baseHeaders = {}) {
+  const headers = new Headers(baseHeaders);
+  headers.set("x-file-drop-user", getFileDropUser());
+  headers.set("x-file-drop-password", getFileDropPassword());
+  headers.set("x-transfer-code", getTransferCode());
+  return headers;
+}
+
+function getFileDropUser() {
+  return (localStorage.getItem("fileDropUser") || userInput.value || "").trim();
+}
+
+function getFileDropPassword() {
+  return sessionStorage.getItem("fileDropPassword") || passwordInput.value || "";
 }
 
 function getTransferCode() {

@@ -24,13 +24,13 @@ TRANSFER_CODE='change-this-code' npm start
 
 Then enter the same code in the browser UI.
 
-Set browser-level Basic authentication before exposing it:
+Set app-level authentication before exposing it:
 
 ```bash
 FILE_DROP_USER='your-user' FILE_DROP_PASSWORD='your-password' TRANSFER_CODE='change-this-code' npm start
 ```
 
-Visitors must pass Basic authentication first, then enter the transfer code in the app.
+The page loads normally, then API actions require the username, password, and transfer code entered in the app.
 
 ## Paste Transfer
 

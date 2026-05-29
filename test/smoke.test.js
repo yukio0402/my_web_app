@@ -8,19 +8,18 @@ const rootDir = path.resolve(import.meta.dirname, "..");
 const port = 9876;
 const baseUrl = `http://localhost:${port}`;
 const code = "smoke-test-code";
-const basicUser = "smoke-user";
-const basicPassword = "smoke-password";
-const basicAuth = `Basic ${Buffer.from(`${basicUser}:${basicPassword}`).toString("base64")}`;
+const appUser = "smoke-user";
+const appPassword = "smoke-password";
 
-test("requires Basic auth", async () => {
+test("serves the page without browser-level Basic auth", async () => {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: rootDir,
     env: {
       ...process.env,
       PORT: String(port),
       TRANSFER_CODE: code,
-      FILE_DROP_USER: basicUser,
-      FILE_DROP_PASSWORD: basicPassword
+      FILE_DROP_USER: appUser,
+      FILE_DROP_PASSWORD: appPassword
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -28,23 +27,26 @@ test("requires Basic auth", async () => {
   try {
     await waitForListening();
     const response = await fetch(`${baseUrl}/`);
-    assert.equal(response.status, 401);
-    assert.match(response.headers.get("www-authenticate") || "", /Basic/);
+    assert.equal(response.status, 200);
+    const apiResponse = await fetch(`${baseUrl}/api/files`, {
+      headers: { "x-transfer-code": code }
+    });
+    assert.equal(apiResponse.status, 401);
   } finally {
     child.kill();
     await new Promise((resolve) => child.once("exit", resolve));
   }
 });
 
-test("uploads, downloads, and deletes a chunked CSV behind Basic auth", async () => {
+test("uploads, downloads, and deletes a chunked CSV behind app auth", async () => {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: rootDir,
     env: {
       ...process.env,
       PORT: String(port),
       TRANSFER_CODE: code,
-      FILE_DROP_USER: basicUser,
-      FILE_DROP_PASSWORD: basicPassword
+      FILE_DROP_USER: appUser,
+      FILE_DROP_PASSWORD: appPassword
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -85,7 +87,7 @@ test("uploads, downloads, and deletes a chunked CSV behind Basic auth", async ()
     assert.equal(listing.files.some((file) => file.name === completed.file.name), true);
 
     const download = await fetch(`${baseUrl}/api/files/${encodeURIComponent(completed.file.name)}/download?code=${encodeURIComponent(code)}`, {
-      headers: { authorization: basicAuth }
+      headers: authHeaders()
     });
     assert.equal(download.ok, true);
     assert.deepEqual(Buffer.from(await download.arrayBuffer()), bytes);
@@ -98,15 +100,15 @@ test("uploads, downloads, and deletes a chunked CSV behind Basic auth", async ()
   }
 });
 
-test("saves pasted spreadsheet text as TSV behind Basic auth", async () => {
+test("saves pasted spreadsheet text as TSV behind app auth", async () => {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: rootDir,
     env: {
       ...process.env,
       PORT: String(port),
       TRANSFER_CODE: code,
-      FILE_DROP_USER: basicUser,
-      FILE_DROP_PASSWORD: basicPassword
+      FILE_DROP_USER: appUser,
+      FILE_DROP_PASSWORD: appPassword
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -125,7 +127,7 @@ test("saves pasted spreadsheet text as TSV behind Basic auth", async () => {
     assert.match(saved.file.name, /pasted\.tsv$/);
 
     const download = await fetch(`${baseUrl}/api/files/${encodeURIComponent(saved.file.name)}/download?code=${encodeURIComponent(code)}`, {
-      headers: { authorization: basicAuth }
+      headers: authHeaders()
     });
     assert.equal(download.ok, true);
     assert.equal(await download.text(), text);
@@ -142,8 +144,7 @@ async function api(pathname, options = {}) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     ...options,
     headers: {
-      authorization: basicAuth,
-      "x-transfer-code": code,
+      ...authHeaders(),
       ...options.headers
     }
   });
@@ -159,15 +160,21 @@ async function waitForHealth() {
   const started = Date.now();
   while (Date.now() - started < 5000) {
     try {
-      const response = await fetch(`${baseUrl}/api/health`, {
-        headers: { authorization: basicAuth }
-      });
+      const response = await fetch(`${baseUrl}/api/health`);
       if (response.ok) return;
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
   throw new Error("Server did not start");
+}
+
+function authHeaders() {
+  return {
+    "x-file-drop-user": appUser,
+    "x-file-drop-password": appPassword,
+    "x-transfer-code": code
+  };
 }
 
 async function waitForListening() {

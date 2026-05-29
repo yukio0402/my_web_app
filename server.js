@@ -12,9 +12,9 @@ const incomingDir = path.join(uploadDir, ".incoming");
 
 const port = Number(process.env.PORT || 8787);
 const transferCode = process.env.TRANSFER_CODE || crypto.randomBytes(4).toString("hex");
-const basicAuthUser = process.env.FILE_DROP_USER || "";
-const basicAuthPassword = process.env.FILE_DROP_PASSWORD || "";
-const basicAuthEnabled = Boolean(basicAuthUser && basicAuthPassword);
+const appAuthUser = process.env.FILE_DROP_USER || "";
+const appAuthPassword = process.env.FILE_DROP_PASSWORD || "";
+const appAuthEnabled = Boolean(appAuthUser && appAuthPassword);
 const allowedExtensions = new Set([".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"]);
 const allowedTextExtensions = new Set([".csv", ".tsv", ".txt"]);
 const maxChunkBytes = Number(process.env.MAX_CHUNK_MB || 32) * 1024 * 1024;
@@ -26,11 +26,6 @@ await fsp.mkdir(incomingDir, { recursive: true });
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-
-    if (basicAuthEnabled && !hasValidBasicAuth(req)) {
-      sendBasicAuthChallenge(res);
-      return;
-    }
 
     if (url.pathname.startsWith("/api/")) {
       await handleApi(req, res, url);
@@ -48,7 +43,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`Company File Drop listening on http://localhost:${port}`);
-  console.log(`Basic auth: ${basicAuthEnabled ? "enabled" : "disabled"}`);
+  console.log(`App auth: ${appAuthEnabled ? "enabled" : "disabled"}`);
   console.log(`Transfer code: ${transferCode}`);
   console.log(`Uploads directory: ${uploadDir}`);
 });
@@ -59,7 +54,12 @@ async function handleApi(req, res, url) {
     return;
   }
 
-  if (!isAuthorized(req, url)) {
+  if (!isAppAuthorized(req)) {
+    sendJson(res, 401, { error: "Invalid username or password" });
+    return;
+  }
+
+  if (!isTransferAuthorized(req, url)) {
     sendJson(res, 401, { error: "Invalid transfer code" });
     return;
   }
@@ -144,7 +144,7 @@ async function serveStatic(req, res, url) {
   }
 }
 
-function isAuthorized(req, url) {
+function isTransferAuthorized(req, url) {
   const queryCode = url.searchParams.get("code");
   if (queryCode) {
     return constantTimeEquals(queryCode, transferCode);
@@ -160,6 +160,18 @@ function isAuthorized(req, url) {
   return constantTimeEquals(header.slice(7), transferCode);
 }
 
+function isAppAuthorized(req) {
+  if (!appAuthEnabled) return true;
+
+  const headerUser = req.headers["x-file-drop-user"];
+  const headerPassword = req.headers["x-file-drop-password"];
+  if (typeof headerUser === "string" && typeof headerPassword === "string") {
+    return constantTimeEquals(headerUser, appAuthUser) && constantTimeEquals(headerPassword, appAuthPassword);
+  }
+
+  return hasValidBasicAuth(req);
+}
+
 function hasValidBasicAuth(req) {
   const header = req.headers.authorization || "";
   if (!header.startsWith("Basic ")) return false;
@@ -170,19 +182,10 @@ function hasValidBasicAuth(req) {
     if (separator < 0) return false;
     const user = decoded.slice(0, separator);
     const password = decoded.slice(separator + 1);
-    return constantTimeEquals(user, basicAuthUser) && constantTimeEquals(password, basicAuthPassword);
+    return constantTimeEquals(user, appAuthUser) && constantTimeEquals(password, appAuthPassword);
   } catch {
     return false;
   }
-}
-
-function sendBasicAuthChallenge(res) {
-  res.writeHead(401, {
-    "www-authenticate": 'Basic realm="Company File Drop", charset="UTF-8"',
-    "content-type": "text/plain; charset=utf-8",
-    "cache-control": "no-store"
-  });
-  res.end("Authentication required");
 }
 
 function constantTimeEquals(value, expectedValue) {

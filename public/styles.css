@@ -113,16 +113,24 @@ h2 {
 }
 
 .authPanel label,
+.credentialGrid label,
 .settings label {
   font-size: 13px;
   font-weight: 800;
   color: #30404c;
 }
 
-.authRow {
+.authRow,
+.credentialGrid {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) auto;
   gap: 10px;
+  align-items: end;
+}
+
+.credentialGrid label {
+  display: grid;
+  gap: 6px;
 }
 
 input,
@@ -343,6 +351,7 @@ textarea {
   .settings,
   .item,
   .authRow,
+  .credentialGrid,
   .sectionHeader,
   .pasteControls {
     grid-template-columns: 1fr;

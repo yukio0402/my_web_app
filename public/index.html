@@ -19,9 +19,19 @@
       </section>
 
       <section id="authPanel" class="panel authPanel">
-        <label for="codeInput">転送コード</label>
-        <div class="authRow">
-          <input id="codeInput" type="password" autocomplete="current-password" placeholder="Mac側に表示されたコード">
+        <div class="credentialGrid">
+          <label for="userInput">
+            ユーザー名
+            <input id="userInput" type="text" autocomplete="username" placeholder="ユーザー名">
+          </label>
+          <label for="passwordInput">
+            パスワード
+            <input id="passwordInput" type="password" autocomplete="current-password" placeholder="パスワード">
+          </label>
+          <label for="codeInput">
+            転送コード
+            <input id="codeInput" type="password" autocomplete="one-time-code" placeholder="Mac側に表示されたコード">
+          </label>
           <button id="saveCodeButton" type="button">接続</button>
         </div>
         <p id="authMessage" class="muted"></p>
